@@ -2,8 +2,8 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF z adnotacją</title>
-  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <title>PDF z adnotacją - polskie znaki</title>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -29,14 +29,19 @@
   <button id="processBtn">Dodaj adnotację i pobierz PDF</button>
 
   <script>
-    const { PDFDocument, rgb, StandardFonts, degrees } = PDFLib;
+    const { PDFDocument, rgb, degrees } = PDFLib;
+    const fontUrl = 'https://github.com/google/fonts/blob/main/apache/opensans/OpenSans-Regular.ttf?raw=true';
+
+    async function loadFont(pdfDoc) {
+      const fontBytes = await fetch(fontUrl).then(res => res.arrayBuffer());
+      return pdfDoc.embedFont(fontBytes);
+    }
 
     window.addEventListener('DOMContentLoaded', () => {
       const fileInput = document.getElementById('fileInput');
       const processBtn = document.getElementById('processBtn');
 
       processBtn.addEventListener('click', async () => {
-        console.log('Kliknięto przycisk');
         if (fileInput.files.length === 0) {
           alert('Wczytaj plik PDF!');
           return;
@@ -47,9 +52,8 @@
           const arrayBuffer = await file.arrayBuffer();
 
           const pdfDoc = await PDFDocument.load(arrayBuffer);
+          const font = await loadFont(pdfDoc);
           const pages = pdfDoc.getPages();
-          const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
           const dateStr = new Date().toLocaleDateString('pl-PL');
 
           pages.forEach(page => {
@@ -86,8 +90,6 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
           }, 100);
-
-          console.log('Plik powinien się pobrać');
 
         } catch (e) {
           alert('Coś poszło nie tak: ' + e.message);
