@@ -3,406 +3,148 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PDF z adnotacjami - Rozszerzona wersja</title>
+<title>PDF z adnotacją</title>
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    max-width: 650px;
-    margin: 30px auto;
-    padding: 0 15px;
-  }
-  h1 {
-    text-align: center;
-  }
-  label {
-    display: block;
-    margin: 12px 0 6px;
-  }
-  input[type="text"], select, input[type="color"], input[type="number"] {
-    width: 100%;
-    padding: 6px 8px;
-    font-size: 16px;
-    box-sizing: border-box;
-  }
-  input[type="file"] {
-    margin: 20px 0;
-  }
-  button {
-    margin: 20px 0;
-    padding: 12px 25px;
-    font-size: 18px;
-    cursor: pointer;
-  }
-  #annotationsList {
-    margin-top: 10px;
-    border: 1px solid #ccc;
-    padding: 8px;
-    min-height: 60px;
-    max-height: 120px;
-    overflow-y: auto;
-  }
-  #previewCanvas {
-    border: 1px solid #333;
-    margin-top: 15px;
-    max-width: 100%;
-  }
-  .small-input {
-    width: 48%;
-    display: inline-block;
-  }
-  .small-input + .small-input {
-    margin-left: 4%;
-  }
-  .annotation-item {
-    border-bottom: 1px solid #ddd;
-    padding: 6px 0;
-  }
-  .annotation-item:last-child {
-    border-bottom: none;
-  }
-  .annotation-remove {
-    color: red;
-    cursor: pointer;
-    margin-left: 12px;
-    font-weight: bold;
-  }
-  .flex-row {
-    display: flex;
-    justify-content: space-between;
-  }
+  body { font-family: Arial, sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
+  label, input, select, button { display: block; margin: 0.5rem 0; width: 100%; font-size: 1rem; }
+  button { padding: 0.5rem; cursor: pointer; }
 </style>
 </head>
 <body>
-  <h1>PDF z adnotacjami - rozszerzona wersja</h1>
 
-  <input type="file" id="fileInput" accept="application/pdf" />
+<h1>PDF z adnotacją</h1>
 
-  <h3>Dodaj nową adnotację:</h3>
-  <label for="textInput">Tekst adnotacji:</label>
-  <input type="text" id="textInput" placeholder="Np. NIE PLACIMY" maxlength="100" />
+<label for="pdfFile">Wybierz plik PDF:</label>
+<input type="file" id="pdfFile" accept="application/pdf" />
 
-  <div class="flex-row">
-    <div style="width:48%;">
-      <label for="fontSizeInput">Rozmiar czcionki (px):</label>
-      <input type="number" id="fontSizeInput" min="8" max="72" value="16" />
-    </div>
-    <div style="width:48%;">
-      <label for="colorInput">Kolor czcionki:</label>
-      <input type="color" id="colorInput" value="#ff0000" />
-    </div>
-  </div>
+<label for="annotationText">Tekst adnotacji (bez polskich znaków):</label>
+<input type="text" id="annotationText" placeholder="Np. NIE PLACIMY" maxlength="50" />
 
-  <label for="positionSelect">Pozycja na stronie:</label>
-  <select id="positionSelect">
-    <option value="top-right">Prawy górny róg</option>
-    <option value="top-left">Lewy górny róg</option>
-    <option value="bottom-right">Prawy dolny róg</option>
-    <option value="bottom-left">Lewy dolny róg</option>
-    <option value="center">Środek strony</option>
-  </select>
+<label for="fontSize">Rozmiar czcionki (px):</label>
+<input type="number" id="fontSize" value="14" min="8" max="48" />
 
-  <button id="addAnnotationBtn">Dodaj adnotację do listy</button>
+<label for="position">Pozycja adnotacji:</label>
+<select id="position">
+  <option value="top-left">Lewy górny róg</option>
+  <option value="top-right">Prawy górny róg</option>
+  <option value="bottom-left">Lewy dolny róg</option>
+  <option value="bottom-right">Prawy dolny róg</option>
+</select>
 
-  <h3>Adnotacje do dodania:</h3>
-  <div id="annotationsList" aria-live="polite"></div>
+<label for="pages">Strony do adnotacji (np. 1,3-5, puste = wszystkie):</label>
+<input type="text" id="pages" placeholder="np. 1,3-5" />
 
-  <label for="pagesInput">Strony do adnotacji (np. 1,3-5):</label>
-  <input type="text" id="pagesInput" placeholder="np. 1,3-5 (puste = wszystkie)" />
-
-  <button id="processBtn">Przetwórz PDF i pobierz</button>
-
-  <h3>Podgląd pierwszej strony z adnotacjami:</h3>
-  <canvas id="previewCanvas" width="400" height="500"></canvas>
+<button id="processBtn">Dodaj adnotację i pobierz PDF</button>
 
 <script>
-  (() => {
-    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+  const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
-    // UI Elements
-    const fileInput = document.getElementById('fileInput');
-    const textInput = document.getElementById('textInput');
-    const fontSizeInput = document.getElementById('fontSizeInput');
-    const colorInput = document.getElementById('colorInput');
-    const positionSelect = document.getElementById('positionSelect');
-    const addAnnotationBtn = document.getElementById('addAnnotationBtn');
-    const annotationsList = document.getElementById('annotationsList');
-    const pagesInput = document.getElementById('pagesInput');
-    const processBtn = document.getElementById('processBtn');
-    const previewCanvas = document.getElementById('previewCanvas');
-    const previewCtx = previewCanvas.getContext('2d');
+  function removePolishChars(str) {
+    const map = {
+      ą:'a', ć:'c', ę:'e', ł:'l', ń:'n', ó:'o', ś:'s', ź:'z', ż:'z',
+      Ą:'A', Ć:'C', Ę:'E', Ł:'L', Ń:'N', Ó:'O', Ś:'S', Ź:'Z', Ż:'Z'
+    };
+    return str.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, c => map[c] || c);
+  }
 
-    // Store annotations in array
-    let annotations = [];
-
-    // Load saved settings from localStorage
-    function loadSettings() {
-      const saved = localStorage.getItem('pdfAnnotationsSettings');
-      if (saved) {
-        try {
-          const data = JSON.parse(saved);
-          annotations = data.annotations || [];
-          renderAnnotations();
-          pagesInput.value = data.pages || '';
-          if (data.lastText) textInput.value = data.lastText;
-          if (data.lastFontSize) fontSizeInput.value = data.lastFontSize;
-          if (data.lastColor) colorInput.value = data.lastColor;
-          if (data.lastPosition) positionSelect.value = data.lastPosition;
-        } catch {}
-      }
-    }
-    // Save settings to localStorage
-    function saveSettings() {
-      const data = {
-        annotations,
-        pages: pagesInput.value,
-        lastText: textInput.value,
-        lastFontSize: fontSizeInput.value,
-        lastColor: colorInput.value,
-        lastPosition: positionSelect.value,
-      };
-      localStorage.setItem('pdfAnnotationsSettings', JSON.stringify(data));
-    }
-
-    // Render annotation list in UI
-    function renderAnnotations() {
-      annotationsList.innerHTML = '';
-      if (annotations.length === 0) {
-        annotationsList.innerHTML = '<i>Brak dodanych adnotacji</i>';
-        return;
-      }
-      annotations.forEach((ann, i) => {
-        const div = document.createElement('div');
-        div.className = 'annotation-item';
-        div.textContent = `"${ann.text}", rozmiar: ${ann.fontSize}px, kolor: ${ann.color}, pozycja: ${ann.position}`;
-        const rem = document.createElement('span');
-        rem.textContent = '✖';
-        rem.className = 'annotation-remove';
-        rem.title = 'Usuń adnotację';
-        rem.onclick = () => {
-          annotations.splice(i, 1);
-          renderAnnotations();
-          saveSettings();
-          drawPreview();
-        };
-        div.appendChild(rem);
-        annotationsList.appendChild(div);
-      });
-    }
-
-    // Parse pages input, returns array of zero-based page indexes
-    function parsePagesInput(str, totalPages) {
-      if (!str.trim()) return [...Array(totalPages).keys()];
-      const parts = str.split(',');
-      const pagesSet = new Set();
-      for (const part of parts) {
-        if (part.includes('-')) {
-          const [start, end] = part.split('-').map(x => parseInt(x.trim(), 10));
-          if (!isNaN(start) && !isNaN(end)) {
-            for (let i = start; i <= end; i++) {
-              if (i >= 1 && i <= totalPages) pagesSet.add(i - 1);
-            }
-          }
-        } else {
-          const pageNum = parseInt(part.trim(), 10);
-          if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
-            pagesSet.add(pageNum - 1);
-          }
+  function parsePages(input, maxPage) {
+    if (!input.trim()) return [...Array(maxPage).keys()];
+    const parts = input.split(',');
+    const pages = new Set();
+    parts.forEach(part => {
+      if (part.includes('-')) {
+        const [start, end] = part.split('-').map(x => parseInt(x.trim(),10));
+        for(let i = start; i <= end; i++) {
+          if(i > 0 && i <= maxPage) pages.add(i-1);
         }
+      } else {
+        const pageNum = parseInt(part.trim(), 10);
+        if(pageNum > 0 && pageNum <= maxPage) pages.add(pageNum-1);
       }
-      return Array.from(pagesSet).sort((a,b)=>a-b);
-    }
-
-    // Compute coordinates for position on page
-    function computeCoordinates(position, pageWidth, pageHeight, fontSize, textWidth, lineIndex) {
-      // lineIndex: 0 = pierwsza linia od góry (tekst jest na wielu liniach - np. 2 adnotacje)
-      const margin = 20;
-      const lineHeight = fontSize + 4;
-      let x, y;
-
-      switch (position) {
-        case 'top-right':
-          x = pageWidth - textWidth - margin;
-          y = pageHeight - margin - (lineHeight * lineIndex) - fontSize;
-          break;
-        case 'top-left':
-          x = margin;
-          y = pageHeight - margin - (lineHeight * lineIndex) - fontSize;
-          break;
-        case 'bottom-right':
-          x = pageWidth - textWidth - margin;
-          y = margin + (lineHeight * lineIndex);
-          break;
-        case 'bottom-left':
-          x = margin;
-          y = margin + (lineHeight * lineIndex);
-          break;
-        case 'center':
-          x = (pageWidth - textWidth) / 2;
-          y = (pageHeight / 2) - ((lineHeight * (annotations.length-1)) / 2) + (lineHeight * lineIndex);
-          break;
-        default:
-          x = pageWidth - textWidth - margin;
-          y = pageHeight - margin - (lineHeight * lineIndex) - fontSize;
-      }
-      return { x, y };
-    }
-
-    // Add annotation button click
-    addAnnotationBtn.onclick = () => {
-      const text = textInput.value.trim();
-      if (!text) {
-        alert('Podaj tekst adnotacji');
-        return;
-      }
-      const fontSize = parseInt(fontSizeInput.value, 10);
-      const color = colorInput.value;
-      const position = positionSelect.value;
-
-      annotations.push({ text, fontSize, color, position });
-      renderAnnotations();
-      saveSettings();
-      textInput.value = '';
-      drawPreview();
-    };
-
-    // Draw preview on canvas (first page only)
-    async function drawPreview() {
-      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-      if (!fileInput.files.length) return;
-
-      try {
-        const arrayBuffer = await fileInput.files[0].arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer);
-        const page = pdfDoc.getPages()[0];
-        const { width, height } = page.getSize();
-
-        // Skalowanie do canvas (max 400x500)
-        const scale = Math.min(previewCanvas.width / width, previewCanvas.height / height);
-
-        // Render strony na canvas - pdf-lib nie ma natywnego renderowania, więc zrobimy tylko adnotacje na pustym tle
-        // Alternatywnie można użyć PDF.js do renderowania podglądu (ale to wykracza poza prostotę)
-        // Tutaj rysujemy tło białe i tekst adnotacji na canvas jako podgląd pozycjonowania i koloru.
-
-        previewCtx.fillStyle = '#fff';
-        previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
-
-        previewCtx.fillStyle = '#000';
-        previewCtx.font = '14px Arial';
-        previewCtx.fillText(`Podgląd strony 1 (niepełny)`, 10, 20);
-
-        annotations.forEach((ann, i) => {
-          previewCtx.font = `${ann.fontSize * scale}px Arial`;
-          previewCtx.fillStyle = ann.color;
-          // uproszczone pozycjonowanie w canvas
-          let x = 0, y = 0;
-          const margin = 10;
-          switch(ann.position) {
-            case 'top-right': x = previewCanvas.width - 150; y = margin + (ann.fontSize * scale + 4) * i + 20; break;
-            case 'top-left': x = margin; y = margin + (ann.fontSize * scale + 4) * i + 20; break;
-            case 'bottom-right': x = previewCanvas.width - 150; y = previewCanvas.height - margin - (ann.fontSize * scale + 4) * (annotations.length - i); break;
-            case 'bottom-left': x = margin; y = previewCanvas.height - margin - (ann.fontSize * scale + 4) * (annotations.length - i); break;
-            case 'center': x = previewCanvas.width/2 - 50; y = previewCanvas.height/2 + (ann.fontSize * scale + 4) * (i - annotations.length/2); break;
-          }
-          previewCtx.fillText(ann.text, x, y);
-        });
-      } catch {
-        // Brak podglądu
-      }
-    }
-
-    // Process PDF button
-    processBtn.onclick = async () => {
-      if (!fileInput.files.length) {
-        alert('Wybierz plik PDF');
-        return;
-      }
-      if (annotations.length === 0) {
-        alert('Dodaj przynajmniej jedną adnotację');
-        return;
-      }
-
-      try {
-        const arrayBuffer = await fileInput.files[0].arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer);
-
-        // embed standard font once
-        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-
-        // Which pages to annotate
-        const pagesToAnnotate = parsePagesInput(pagesInput.value, pdfDoc.getPageCount());
-
-        // Format bieżącej daty dd/mm/yyyy
-        const now = new Date();
-        const formatDate = (d) => {
-          const dd = String(d.getDate()).padStart(2, '0');
-          const mm = String(d.getMonth() + 1).padStart(2, '0');
-          const yyyy = d.getFullYear();
-          return `${dd}/${mm}/${yyyy}`;
-        };
-        const dateText = `Data przyjecia: ${formatDate(now)}`;
-
-        // Dodajemy na każdą z wybranych stron
-        pagesToAnnotate.forEach(pageIndex => {
-          const page = pdfDoc.getPages()[pageIndex];
-          const { width, height } = page.getSize();
-
-          // Łączymy wszystkie adnotacje z dodatkową datą na górze, jako pierwszą linię
-          const allAnnotations = [
-            { text: dateText, fontSize: 12, color: '#000000', position: 'top-right' },
-            ...annotations
-          ];
-
-          // Rysujemy adnotacje
-          allAnnotations.forEach((ann, i) => {
-            const textWidth = font.widthOfTextAtSize(ann.text, ann.fontSize);
-            const { x, y } = computeCoordinates(ann.position, width, height, ann.fontSize, textWidth, i);
-            page.drawText(ann.text, {
-              x, y,
-              size: ann.fontSize,
-              font,
-              color: rgb(
-                parseInt(ann.color.substr(1,2),16)/255,
-                parseInt(ann.color.substr(3,2),16)/255,
-                parseInt(ann.color.substr(5,2),16)/255
-              ),
-              opacity: 0.9,
-            });
-          });
-        });
-
-        // Zapisujemy nowy PDF
-        const pdfBytes = await pdfDoc.save();
-
-        // Pobieramy z zmienioną nazwą
-        const originalName = fileInput.files[0].name.replace(/\.pdf$/i, '');
-        const newName = originalName + '_adnotacja.pdf';
-
-        // Trigger download
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = newName;
-        a.click();
-        URL.revokeObjectURL(url);
-
-        alert('PDF przetworzony i pobrany');
-      } catch (e) {
-        alert('Cos poszlo nie tak: ' + e.message);
-      }
-    };
-
-    // Podgląd na zmiany pól
-    [textInput, fontSizeInput, colorInput, positionSelect].forEach(el => {
-      el.addEventListener('input', drawPreview);
     });
+    return Array.from(pages).sort((a,b)=>a-b);
+  }
 
-    // Podgląd zmienia się też po dodaniu/usunieciu adnotacji
-    loadSettings();
-    drawPreview();
+  document.getElementById('processBtn').onclick = async () => {
+    const fileInput = document.getElementById('pdfFile');
+    const textInput = document.getElementById('annotationText');
+    const fontSizeInput = document.getElementById('fontSize');
+    const positionSelect = document.getElementById('position');
+    const pagesInput = document.getElementById('pages');
 
-  })();
+    if(fileInput.files.length === 0) {
+      alert('Wybierz plik PDF!');
+      return;
+    }
+    let text = textInput.value.trim();
+    if(text.length === 0) {
+      alert('Wpisz tekst adnotacji!');
+      return;
+    }
+    text = removePolishChars(text);
+
+    try {
+      const arrayBuffer = await fileInput.files[0].arrayBuffer();
+      const pdfDoc = await PDFDocument.load(arrayBuffer);
+
+      const pagesToAnnotate = parsePages(pagesInput.value, pdfDoc.getPageCount());
+
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+      pagesToAnnotate.forEach(pageIndex => {
+        const page = pdfDoc.getPages()[pageIndex];
+        const { width, height } = page.getSize();
+        const fontSize = parseInt(fontSizeInput.value, 10);
+
+        let x = 10;
+        let y = height - fontSize - 10;
+
+        switch(positionSelect.value) {
+          case 'top-left':
+            x = 10; y = height - fontSize - 10;
+            break;
+          case 'top-right':
+            x = width - font.widthOfTextAtSize(text, fontSize) - 10;
+            y = height - fontSize - 10;
+            break;
+          case 'bottom-left':
+            x = 10; y = 10;
+            break;
+          case 'bottom-right':
+            x = width - font.widthOfTextAtSize(text, fontSize) - 10;
+            y = 10;
+            break;
+        }
+
+        page.drawText(text, {
+          x,
+          y,
+          size: fontSize,
+          font,
+          color: rgb(1, 0, 0), // czerwony kolor
+          opacity: 0.8,
+        });
+      });
+
+      const pdfBytes = await pdfDoc.save();
+      const originalName = fileInput.files[0].name.replace(/\.pdf$/i, '');
+      const newName = originalName + '_adnotacja.pdf';
+
+      const blob = new Blob([pdfBytes], {type: 'application/pdf'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = newName;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      alert('PDF przetworzony i pobrany');
+    } catch(e) {
+      alert('Cos poszlo nie tak: ' + e.message);
+    }
+  }
 </script>
+
 </body>
 </html>
