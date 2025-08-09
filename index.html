@@ -30,67 +30,71 @@
 
   <script>
     const { PDFDocument, rgb, StandardFonts, degrees } = PDFLib;
-    const fileInput = document.getElementById('fileInput');
-    const processBtn = document.getElementById('processBtn');
 
-    processBtn.onclick = async () => {
-      if (fileInput.files.length === 0) {
-        alert('Wczytaj plik PDF!');
-        return;
-      }
+    window.addEventListener('DOMContentLoaded', () => {
+      const fileInput = document.getElementById('fileInput');
+      const processBtn = document.getElementById('processBtn');
 
-      try {
-        const file = fileInput.files[0];
-        const arrayBuffer = await file.arrayBuffer();
+      processBtn.addEventListener('click', async () => {
+        console.log('Kliknięto przycisk');
+        if (fileInput.files.length === 0) {
+          alert('Wczytaj plik PDF!');
+          return;
+        }
 
-        const pdfDoc = await PDFDocument.load(arrayBuffer);
-        const pages = pdfDoc.getPages();
-        const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        try {
+          const file = fileInput.files[0];
+          const arrayBuffer = await file.arrayBuffer();
 
-        const dateStr = new Date().toLocaleDateString('pl-PL');
+          const pdfDoc = await PDFDocument.load(arrayBuffer);
+          const pages = pdfDoc.getPages();
+          const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-        pages.forEach(page => {
-          const { width, height } = page.getSize();
+          const dateStr = new Date().toLocaleDateString('pl-PL');
 
-          // Data przyjęcia w prawym górnym rogu
-          page.drawText(`Data przyjęcia: ${dateStr}`, {
-            x: width - 200,
-            y: height - 30,
-            size: 12,
-            font,
-            color: rgb(0, 0, 0),
+          pages.forEach(page => {
+            const { width, height } = page.getSize();
+
+            page.drawText(`Data przyjęcia: ${dateStr}`, {
+              x: width - 200,
+              y: height - 30,
+              size: 12,
+              font,
+              color: rgb(0, 0, 0),
+            });
+
+            page.drawText('NIE PŁACIMY', {
+              x: width - 150,
+              y: height - 50,
+              size: 14,
+              font,
+              color: rgb(1, 0, 0),
+              rotate: degrees(0),
+            });
           });
 
-          // Adnotacja "NIE PŁACIMY" czerwoną czcionką trochę niżej
-          page.drawText('NIE PŁACIMY', {
-            x: width - 150,
-            y: height - 50,
-            size: 14,
-            font,
-            color: rgb(1, 0, 0),
-            rotate: degrees(0),
-          });
-        });
+          const pdfBytes = await pdfDoc.save();
 
-        const pdfBytes = await pdfDoc.save();
+          const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `z_annotacja_${dateStr.replace(/\./g, '-')}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 100);
 
-        // Poprawione pobieranie pliku:
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `z_annotacja_${dateStr.replace(/\./g, '-')}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }, 100);
+          console.log('Plik powinien się pobrać');
 
-      } catch (e) {
-        alert('Coś poszło nie tak: ' + e.message);
-      }
-    };
+        } catch (e) {
+          alert('Coś poszło nie tak: ' + e.message);
+          console.error(e);
+        }
+      });
+    });
   </script>
 </body>
 </html>
