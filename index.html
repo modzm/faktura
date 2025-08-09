@@ -90,7 +90,11 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `z_adnotacja_${dateStr.replace(/\./g, '-')}.pdf`;
+
+        // Nowa nazwa pliku z dopiskiem "_adnotacja"
+        const originalName = file.name.replace(/\.pdf$/i, '');
+        a.download = `${originalName}_adnotacja.pdf`;
+
         document.body.appendChild(a);
         a.click();
         a.remove();
