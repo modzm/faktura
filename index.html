@@ -2,111 +2,50 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF z polskimi znakami i adnotacją</title>
-
-  <!-- Najpierw fontkit -->
-  <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@0.0.21/fontkit.min.js"></script>
-
-  <!-- Potem pdf-lib -->
-  <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
-
+  <title>PDF z adnotacją na GitHub Pages</title>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 480px;
-      margin: 20px auto;
-      padding: 10px;
+      max-width: 400px;
+      margin: 50px auto;
+      text-align: center;
     }
-    input, button {
-      display: block;
-      margin: 10px 0;
-      width: 100%;
+    input[type="file"] {
+      margin: 20px 0;
+    }
+    button {
+      padding: 10px 20px;
       font-size: 16px;
-      padding: 8px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
 
-  <h2>Dodaj adnotację do PDF (polskie znaki)</h2>
+  <h1>Dodaj adnotację do PDF (w przeglądarce)</h1>
   <input type="file" id="fileInput" accept="application/pdf" />
-  <button id="processBtn">Przetwórz i pobierz PDF</button>
+  <br />
+  <button id="processBtn">Przetwórz i pobierz</button>
 
   <script>
-    (async () => {
-      const { PDFDocument, rgb } = PDFLib;
+    // Base64 font Roboto Regular (subset, tylko polskie znaki + ascii)
+    // Można tu wstawić font base64 — dla uproszczenia pobierzemy font z Google Fonts
+    // Tu użyjemy prostego fontu bez problemów z polskimi znakami.
 
-      // Rejestracja fontkit — kluczowe!
-      PDFDocument.registerFontkit(fontkit);
+    async function fetchFont() {
+      // Pobieramy font Roboto Regular w formacie TTF (z publicznego URL)
+      const url = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/assets/Roboto-Regular.ttf';
+      const res = await fetch(url);
+      const fontBytes = await res.arrayBuffer();
+      return fontBytes;
+    }
 
-      // URL do czcionki z pełnym wsparciem polskich znaków
-      const fontUrl = 'https://pdf-lib.js.org/assets/ubuntu/Ubuntu-R.ttf';
-
-      async function loadFont(pdfDoc) {
-        const fontBytes = await fetch(fontUrl).then(res => res.arrayBuffer());
-        return pdfDoc.embedFont(fontBytes);
+    document.getElementById('processBtn').onclick = async () => {
+      const input = document.getElementById('fileInput');
+      if (!input.files.length) {
+        alert('Wybierz plik PDF');
+        return;
       }
-
-      const processBtn = document.getElementById('processBtn');
-      processBtn.addEventListener('click', async () => {
-        const input = document.getElementById('fileInput');
-        if (!input.files.length) {
-          alert('Proszę wybrać plik PDF.');
-          return;
-        }
-
-        try {
-          const file = input.files[0];
-          const arrayBuffer = await file.arrayBuffer();
-
-          const pdfDoc = await PDFDocument.load(arrayBuffer);
-          const font = await loadFont(pdfDoc);
-
-          const pages = pdfDoc.getPages();
-          const dateStr = new Date().toLocaleDateString('pl-PL');
-
-          pages.forEach(page => {
-            const { width, height } = page.getSize();
-
-            page.drawText(`Data przyjęcia: ${dateStr}`, {
-              x: width - 220,
-              y: height - 30,
-              size: 12,
-              font,
-              color: rgb(0, 0, 0),
-            });
-
-            page.drawText('NIE PŁACIMY', {
-              x: width - 150,
-              y: height - 50,
-              size: 16,
-              font,
-              color: rgb(1, 0, 0),
-            });
-          });
-
-          const pdfBytes = await pdfDoc.save();
-
-          // Tworzymy blob i wymuszamy pobranie pliku
-          const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `z_annotacja_${dateStr.replace(/\./g, '-')}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          }, 150);
-
-        } catch (e) {
-          alert('Coś poszło nie tak: ' + e.message);
-          console.error(e);
-        }
-      });
-    })();
-  </script>
-
-</body>
-</html>
+      const file = input.files[0];
+      const arrayBuffer = await file.array
