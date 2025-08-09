@@ -2,19 +2,12 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF z adnotacja bez embedowania czcionki</title>
+  <title>PDF z adnotacją dla naszych przyjaciół</title>
   <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; text-align: center; }
-    input[type="file"] { margin: 20px 0; }
-    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-  </style>
 </head>
 <body>
-  <h1>Dodaj adnotacje do PDF (w przegladarce)</h1>
   <input type="file" id="fileInput" accept="application/pdf" />
-  <br />
-  <button id="processBtn">Przetworz i pobierz</button>
+  <button id="processBtn">Dodaj adnotację i pobierz</button>
 
   <script>
     document.getElementById('processBtn').onclick = async () => {
@@ -26,12 +19,12 @@
       const file = input.files[0];
       const arrayBuffer = await file.arrayBuffer();
 
-      const { PDFDocument, rgb, StandardFonts } = PDFLib;
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
       try {
         const pdfDoc = await PDFDocument.load(arrayBuffer);
 
-        // Używamy standardowej czcionki Helvetica, bez embedowania
+        // Użycie wbudowanej czcionki Helvetica
         const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
         const pages = pdfDoc.getPages();
