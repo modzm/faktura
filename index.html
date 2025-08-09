@@ -74,7 +74,7 @@
 
         const pdfBytes = await pdfDoc.save();
 
-        // Pobierz plik
+        // Poprawione pobieranie pliku:
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -82,8 +82,10 @@
         a.download = `z_annotacja_${dateStr.replace(/\./g, '-')}.pdf`;
         document.body.appendChild(a);
         a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 100);
 
       } catch (e) {
         alert('Coś poszło nie tak: ' + e.message);
