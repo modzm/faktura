@@ -3,43 +3,108 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PDF z adnotacją i datą</title>
+<title>PDF - Adnotacja z datą</title>
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <style>
-  body { font-family: Arial, sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
-  label, input, select, button { display: block; margin: 0.5rem 0; width: 100%; font-size: 1rem; }
-  button { padding: 0.5rem; cursor: pointer; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 1rem;
+    background: #f4f6f8;
+    color: #333;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 1rem;
+    color: #005a9e;
+  }
+  label {
+    display: block;
+    margin: 1rem 0 0.3rem 0;
+    font-weight: 600;
+  }
+  input[type="file"],
+  input[type="text"],
+  input[type="number"],
+  select {
+    width: 100%;
+    padding: 0.4rem 0.5rem;
+    font-size: 1rem;
+    border: 1.5px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+  }
+  input[type="file"]:focus,
+  input[type="text"]:focus,
+  input[type="number"]:focus,
+  select:focus {
+    border-color: #005a9e;
+    outline: none;
+  }
+  button {
+    margin-top: 1.5rem;
+    background: #005a9e;
+    color: white;
+    border: none;
+    padding: 0.6rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.3s ease;
+  }
+  button:hover {
+    background: #003f6b;
+  }
+  small {
+    color: #666;
+    font-style: italic;
+  }
+  .footer {
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    text-align: center;
+    color: #999;
+  }
 </style>
 </head>
 <body>
 
-<h1>PDF z adnotacją i datą</h1>
+<h1>Dodaj adnotację i datę do PDF</h1>
 
 <label for="pdfFile">Wybierz plik PDF:</label>
 <input type="file" id="pdfFile" accept="application/pdf" />
 
 <label for="annotationText">Tekst adnotacji (bez polskich znaków):</label>
-<input type="text" id="annotationText" placeholder="Np. NIE PLACIMY" maxlength="50" />
+<input type="text" id="annotationText" placeholder="Np. NIE PLACIMY" maxlength="50" value="NIE PLACIMY" />
 
 <label for="fontSize">Rozmiar czcionki (px):</label>
-<input type="number" id="fontSize" value="14" min="8" max="48" />
+<input type="number" id="fontSize" value="16" min="8" max="48" />
 
 <label for="position">Pozycja adnotacji:</label>
 <select id="position">
-  <option value="top-left">Lewy górny róg</option>
   <option value="top-right" selected>Prawy górny róg</option>
-  <option value="bottom-left">Lewy dolny róg</option>
+  <option value="top-left">Lewy górny róg</option>
   <option value="bottom-right">Prawy dolny róg</option>
+  <option value="bottom-left">Lewy dolny róg</option>
 </select>
 
-<label for="pages">Strony do adnotacji (np. 1,3-5, puste = wszystkie):</label>
+<label for="pages">Strony do adnotacji (np. 1,3-5; puste = wszystkie):</label>
 <input type="text" id="pages" placeholder="np. 1,3-5" />
 
-<button id="processBtn">Dodaj adnotację i datę, pobierz PDF</button>
+<button id="processBtn">Dodaj i pobierz PDF</button>
+
+<div class="footer">
+  <small>Projekt działa w przeglądarce, plik nie jest wysyłany nigdzie.</small>
+</div>
 
 <script>
   const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
+  // Usuwa polskie znaki diakrytyczne
   function removePolishChars(str) {
     const map = {
       ą:'a', ć:'c', ę:'e', ł:'l', ń:'n', ó:'o', ś:'s', ź:'z', ż:'z',
@@ -48,6 +113,7 @@
     return str.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, c => map[c] || c);
   }
 
+  // Parsuje string stron do indeksów (0-based)
   function parsePages(input, maxPage) {
     if (!input.trim()) return [...Array(maxPage).keys()];
     const parts = input.split(',');
@@ -66,6 +132,7 @@
     return Array.from(pages).sort((a,b)=>a-b);
   }
 
+  // Formatuje datę dd/mm/yyyy
   function formatDate(date) {
     const dd = String(date.getDate()).padStart(2,'0');
     const mm = String(date.getMonth()+1).padStart(2,'0');
@@ -99,7 +166,7 @@
 
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-      // bieżąca data do wpisania
+      // przygotuj tekst daty
       const dateText = 'Data przyjecia: ' + formatDate(new Date());
       const dateFontSize = 12;
 
@@ -108,77 +175,78 @@
         const { width, height } = page.getSize();
         const fontSize = parseInt(fontSizeInput.value, 10);
 
-        // pozycje x,y dla obu tekstów
-        let xDate = 10;
-        let yDate = height - dateFontSize - 10;
-        let xAnn = 10;
-        let yAnn = yDate - fontSize - 2; // pod datą
+        // Domyślne pozycje (prawy górny róg)
+        let xDate, yDate, xAnn, yAnn;
 
         switch(positionSelect.value) {
           case 'top-left':
             xDate = 10;
             yDate = height - dateFontSize - 10;
             xAnn = 10;
-            yAnn = yDate - fontSize - 2;
+            yAnn = yDate - fontSize - 5;
             break;
           case 'top-right':
             xDate = width - font.widthOfTextAtSize(dateText, dateFontSize) - 10;
             yDate = height - dateFontSize - 10;
             xAnn = width - font.widthOfTextAtSize(text, fontSize) - 10;
-            yAnn = yDate - fontSize - 2;
+            yAnn = yDate - fontSize - 5;
             break;
           case 'bottom-left':
             xAnn = 10;
             yAnn = 10;
             xDate = 10;
-            yDate = yAnn + fontSize + 2;
+            yDate = yAnn + fontSize + 5;
             break;
           case 'bottom-right':
             xAnn = width - font.widthOfTextAtSize(text, fontSize) - 10;
             yAnn = 10;
             xDate = width - font.widthOfTextAtSize(dateText, dateFontSize) - 10;
-            yDate = yAnn + fontSize + 2;
+            yDate = yAnn + fontSize + 5;
             break;
         }
 
-        // wpisujemy datę (czarny)
+        // Dodajemy datę czarną
         page.drawText(dateText, {
           x: xDate,
           y: yDate,
           size: dateFontSize,
           font,
-          color: rgb(0,0,0),
+          color: rgb(0, 0, 0),
           opacity: 1,
         });
 
-        // wpisujemy adnotację (czerwony)
+        // Dodajemy adnotację czerwoną
         page.drawText(text, {
           x: xAnn,
           y: yAnn,
           size: fontSize,
           font,
-          color: rgb(1,0,0),
+          color: rgb(1, 0, 0),
           opacity: 0.8,
         });
       });
 
+      // Zapisz plik i pobierz z dopiskiem "_adnotacja"
       const pdfBytes = await pdfDoc.save();
       const originalName = fileInput.files[0].name.replace(/\.pdf$/i, '');
       const newName = originalName + '_adnotacja.pdf';
 
       const blob = new Blob([pdfBytes], {type: 'application/pdf'});
       const url = URL.createObjectURL(blob);
+
       const a = document.createElement('a');
       a.href = url;
       a.download = newName;
+      document.body.appendChild(a);
       a.click();
+      a.remove();
       URL.revokeObjectURL(url);
 
-      alert('PDF przetworzony i pobrany');
-    } catch(e) {
-      alert('Cos poszlo nie tak: ' + e.message);
+      alert('PDF został przetworzony i pobrany.');
+    } catch (e) {
+      alert('Coś poszło nie tak: ' + e.message);
     }
-  }
+  };
 </script>
 
 </body>
