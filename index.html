@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF z adnotacją</title>
+  <title>PDF z adnotacja</title>
   <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; text-align: center; }
@@ -11,10 +11,10 @@
   </style>
 </head>
 <body>
-  <h1>Dodaj adnotację do PDF (w przeglądarce)</h1>
+  <h1>Dodaj adnotacje do PDF (w przegladarce)</h1>
   <input type="file" id="fileInput" accept="application/pdf" />
   <br />
-  <button id="processBtn">Przetwórz i pobierz</button>
+  <button id="processBtn">Przetworz i pobierz</button>
 
   <script>
     async function fetchFont() {
@@ -52,8 +52,8 @@
           const marginRight = 20;
           const marginTop = 20;
 
-          const text1 = `Data przyjęcia: ${dateStr}`;
-          const text2 = 'NIE PŁACIMY';
+          const text1 = `Data przyjecia: ${dateStr}`;
+          const text2 = 'NIE PLACIMY';
 
           const fontSize1 = 12;
           const fontSize2 = 16;
@@ -91,7 +91,6 @@
         const a = document.createElement('a');
         a.href = url;
 
-        // Nowa nazwa pliku z dopiskiem "_adnotacja"
         const originalName = file.name.replace(/\.pdf$/i, '');
         a.download = `${originalName}_adnotacja.pdf`;
 
@@ -100,7 +99,7 @@
         a.remove();
         URL.revokeObjectURL(url);
       } catch (e) {
-        alert('Coś poszło nie tak: ' + e.message);
+        alert('Cos poszlo nie tak: ' + e.message);
       }
     };
   </script>
