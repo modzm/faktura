@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF z adnotacja</title>
+  <title>PDF z adnotacja bez embedowania czcionki</title>
   <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; text-align: center; }
@@ -17,13 +17,6 @@
   <button id="processBtn">Przetworz i pobierz</button>
 
   <script>
-    async function fetchFont() {
-      const url = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/assets/Roboto-Regular.ttf';
-      const res = await fetch(url);
-      const fontBytes = await res.arrayBuffer();
-      return fontBytes;
-    }
-
     document.getElementById('processBtn').onclick = async () => {
       const input = document.getElementById('fileInput');
       if (!input.files.length) {
@@ -33,14 +26,13 @@
       const file = input.files[0];
       const arrayBuffer = await file.arrayBuffer();
 
-      const fontBytes = await fetchFont();
-
-      const { PDFDocument, rgb } = PDFLib;
+      const { PDFDocument, rgb, StandardFonts } = PDFLib;
 
       try {
         const pdfDoc = await PDFDocument.load(arrayBuffer);
 
-        const customFont = await pdfDoc.embedFont(fontBytes);
+        // Używamy standardowej czcionki Helvetica, bez embedowania
+        const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
         const pages = pdfDoc.getPages();
         const now = new Date();
@@ -58,8 +50,8 @@
           const fontSize1 = 12;
           const fontSize2 = 16;
 
-          const textWidth1 = customFont.widthOfTextAtSize(text1, fontSize1);
-          const textWidth2 = customFont.widthOfTextAtSize(text2, fontSize2);
+          const textWidth1 = helveticaFont.widthOfTextAtSize(text1, fontSize1);
+          const textWidth2 = helveticaFont.widthOfTextAtSize(text2, fontSize2);
 
           const x1 = width - textWidth1 - marginRight;
           const x2 = width - textWidth2 - marginRight;
@@ -71,7 +63,7 @@
             x: x1,
             y: y1,
             size: fontSize1,
-            font: customFont,
+            font: helveticaFont,
             color: rgb(0, 0, 0),
           });
 
@@ -79,7 +71,7 @@
             x: x2,
             y: y2,
             size: fontSize2,
-            font: customFont,
+            font: helveticaFont,
             color: rgb(1, 0, 0),
           });
         }
