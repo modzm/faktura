@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<title>PDF Adnotacje Frontend</title>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  input, button { font-size: 1rem; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<h2>Wgraj plik PDF, aby dodać adnotacje</h2>
+<input type="file" id="pdf-upload" accept="application/pdf" />
+<br/>
+<button id="process-btn" disabled>Dodaj adnotacje i pobierz PDF</button>
+
+<script>
+  const { PDFDocument, rgb, StandardFonts } = PDFLib;
+  const uploadInput = document.getElementById('pdf-upload');
+  const processBtn = document.getElementById('process-btn');
+
+  let arrayBufferPDF;
+
+  uploadInput.addEventListener('change', async () => {
+    if (uploadInput.files.length > 0) {
+      arrayBufferPDF = await uploadInput.files[0].arrayBuffer();
+      processBtn.disabled = false;
+    } else {
+      processBtn.disabled = true;
+    }
+  });
+
+  processBtn.addEventListener('click', async () => {
+    if (!arrayBufferPDF) return alert("Najpierw wgraj plik PDF.");
+
+    // Załaduj PDF
+    const pdfDoc = await PDFDocument.load(arrayBufferPDF);
+
+    // Załaduj czcionkę standardową
+    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    // Pobierz dzisiejszą datę
+    const dzisiaj = new Date();
+    const dd = String(dzisiaj.getDate()).padStart(2, '0');
+    const mm = String(dzisiaj.getMonth() + 1).padStart(2, '0');
+    const yyyy = dzisiaj.getFullYear();
+    const dataTekst = `Data przyjęcia: ${dd}/${mm}/${yyyy}`;
+    const adnotacjaTekst = "NIE PŁACIMY";
+
+    // Dla każdej strony
+    const strony = pdfDoc.getPages();
+    for (const strona of strony) {
+      const { width, height } = strona.getSize();
+      const marginesX = 50;
+      const marginesY = 50;
+
+      // Data czarną czcionką, rozmiar 10, wypoziomowana do prawej
+      strona.drawText(dataTekst, {
+        x: width - marginesX - helveticaFont.widthOfTextAtSize(dataTekst, 10),
+        y: height - marginesY,
+        size: 10,
+        font: helveticaFont,
+        color: rgb(0, 0, 0),
+      });
+
+      // Adnotacja czerwona, pogrubiona, rozmiar 12, 15 punktów niżej
+      strona.drawText(adnotacjaTekst, {
+        x: width - marginesX - helveticaBoldFont.widthOfTextAtSize(adnotacjaTekst, 12),
+        y: height - marginesY - 15,
+        size: 12,
+        font: helveticaBoldFont,
+        color: rgb(1, 0, 0),
+      });
+    }
+
+    // Generuj nowy PDF
+    const pdfBytes = await pdfDoc.save();
+
+    // Utwórz link do pobrania
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'adnotowany_pdf.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+</script>
+
+</body>
+</html>
