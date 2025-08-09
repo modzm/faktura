@@ -30,7 +30,9 @@
 
   <script>
     const { PDFDocument, rgb, degrees } = PDFLib;
-    const fontUrl = 'https://github.com/google/fonts/blob/main/apache/opensans/OpenSans-Regular.ttf?raw=true';
+
+    // Font Ubuntu-R.ttf z pdf-lib CDN (pełne wsparcie polskich znaków)
+    const fontUrl = 'https://pdf-lib.js.org/assets/ubuntu/Ubuntu-R.ttf';
 
     async function loadFont(pdfDoc) {
       const fontBytes = await fetch(fontUrl).then(res => res.arrayBuffer());
@@ -59,6 +61,7 @@
           pages.forEach(page => {
             const { width, height } = page.getSize();
 
+            // Data przyjęcia - czarny tekst
             page.drawText(`Data przyjęcia: ${dateStr}`, {
               x: width - 200,
               y: height - 30,
@@ -67,6 +70,7 @@
               color: rgb(0, 0, 0),
             });
 
+            // NIE PŁACIMY - czerwony tekst
             page.drawText('NIE PŁACIMY', {
               x: width - 150,
               y: height - 50,
