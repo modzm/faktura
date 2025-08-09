@@ -2,39 +2,22 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF z adnotacją na GitHub Pages</title>
+  <title>PDF z adnotacją</title>
   <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 400px;
-      margin: 50px auto;
-      text-align: center;
-    }
-    input[type="file"] {
-      margin: 20px 0;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-    }
+    body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; text-align: center; }
+    input[type="file"] { margin: 20px 0; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
   </style>
 </head>
 <body>
-
   <h1>Dodaj adnotację do PDF (w przeglądarce)</h1>
   <input type="file" id="fileInput" accept="application/pdf" />
   <br />
   <button id="processBtn">Przetwórz i pobierz</button>
 
   <script>
-    // Base64 font Roboto Regular (subset, tylko polskie znaki + ascii)
-    // Można tu wstawić font base64 — dla uproszczenia pobierzemy font z Google Fonts
-    // Tu użyjemy prostego fontu bez problemów z polskimi znakami.
-
     async function fetchFont() {
-      // Pobieramy font Roboto Regular w formacie TTF (z publicznego URL)
       const url = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/assets/Roboto-Regular.ttf';
       const res = await fetch(url);
       const fontBytes = await res.arrayBuffer();
@@ -48,4 +31,74 @@
         return;
       }
       const file = input.files[0];
-      const arrayBuffer = await file.array
+      const arrayBuffer = await file.arrayBuffer();
+
+      const fontBytes = await fetchFont();
+
+      const { PDFDocument, rgb } = PDFLib;
+
+      try {
+        const pdfDoc = await PDFDocument.load(arrayBuffer);
+
+        const customFont = await pdfDoc.embedFont(fontBytes);
+
+        const pages = pdfDoc.getPages();
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('pl-PL');
+
+        for (const page of pages) {
+          const { width, height } = page.getSize();
+
+          const marginRight = 20;
+          const marginTop = 20;
+
+          const text1 = `Data przyjęcia: ${dateStr}`;
+          const text2 = 'NIE PŁACIMY';
+
+          const fontSize1 = 12;
+          const fontSize2 = 16;
+
+          const textWidth1 = customFont.widthOfTextAtSize(text1, fontSize1);
+          const textWidth2 = customFont.widthOfTextAtSize(text2, fontSize2);
+
+          const x1 = width - textWidth1 - marginRight;
+          const x2 = width - textWidth2 - marginRight;
+
+          const y1 = height - marginTop - fontSize1;
+          const y2 = height - marginTop - fontSize1 - fontSize2 - 5;
+
+          page.drawText(text1, {
+            x: x1,
+            y: y1,
+            size: fontSize1,
+            font: customFont,
+            color: rgb(0, 0, 0),
+          });
+
+          page.drawText(text2, {
+            x: x2,
+            y: y2,
+            size: fontSize2,
+            font: customFont,
+            color: rgb(1, 0, 0),
+          });
+        }
+
+        const pdfBytes = await pdfDoc.save();
+
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `z_adnotacja_${dateStr.replace(/\./g, '-')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        alert('Coś poszło nie tak: ' + e.message);
+      }
+    };
+  </script>
+</body>
+</html>
