@@ -1,96 +1,94 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<meta charset="UTF-8" />
-<title>PDF Adnotacje Frontend</title>
-<script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
-<style>
-  body { font-family: Arial, sans-serif; padding: 20px; }
-  input, button { font-size: 1rem; margin-top: 10px; }
-</style>
+  <meta charset="UTF-8" />
+  <title>PDF z adnotacją</title>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 500px;
+      margin: auto;
+    }
+    input, button {
+      font-size: 16px;
+      margin-top: 10px;
+      display: block;
+      width: 100%;
+      padding: 8px;
+    }
+    button {
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
+  <h2>Dodaj adnotację do PDF</h2>
+  <input type="file" id="fileInput" accept="application/pdf" />
+  <button id="processBtn">Dodaj adnotację i pobierz PDF</button>
 
-<h2>Wgraj plik PDF, aby dodać adnotacje</h2>
-<input type="file" id="pdf-upload" accept="application/pdf" />
-<br/>
-<button id="process-btn" disabled>Dodaj adnotacje i pobierz PDF</button>
+  <script>
+    const { PDFDocument, rgb, StandardFonts, degrees } = PDFLib;
+    const fileInput = document.getElementById('fileInput');
+    const processBtn = document.getElementById('processBtn');
 
-<script>
-  const { PDFDocument, rgb, StandardFonts } = PDFLib;
-  const uploadInput = document.getElementById('pdf-upload');
-  const processBtn = document.getElementById('process-btn');
+    processBtn.onclick = async () => {
+      if (fileInput.files.length === 0) {
+        alert('Wczytaj plik PDF!');
+        return;
+      }
 
-  let arrayBufferPDF;
+      try {
+        const file = fileInput.files[0];
+        const arrayBuffer = await file.arrayBuffer();
 
-  uploadInput.addEventListener('change', async () => {
-    if (uploadInput.files.length > 0) {
-      arrayBufferPDF = await uploadInput.files[0].arrayBuffer();
-      processBtn.disabled = false;
-    } else {
-      processBtn.disabled = true;
-    }
-  });
+        const pdfDoc = await PDFDocument.load(arrayBuffer);
+        const pages = pdfDoc.getPages();
+        const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  processBtn.addEventListener('click', async () => {
-    if (!arrayBufferPDF) return alert("Najpierw wgraj plik PDF.");
+        const dateStr = new Date().toLocaleDateString('pl-PL');
 
-    // Załaduj PDF
-    const pdfDoc = await PDFDocument.load(arrayBufferPDF);
+        pages.forEach(page => {
+          const { width, height } = page.getSize();
 
-    // Załaduj czcionkę standardową
-    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+          // Data przyjęcia w prawym górnym rogu
+          page.drawText(`Data przyjęcia: ${dateStr}`, {
+            x: width - 200,
+            y: height - 30,
+            size: 12,
+            font,
+            color: rgb(0, 0, 0),
+          });
 
-    // Pobierz dzisiejszą datę
-    const dzisiaj = new Date();
-    const dd = String(dzisiaj.getDate()).padStart(2, '0');
-    const mm = String(dzisiaj.getMonth() + 1).padStart(2, '0');
-    const yyyy = dzisiaj.getFullYear();
-    const dataTekst = `Data przyjęcia: ${dd}/${mm}/${yyyy}`;
-    const adnotacjaTekst = "NIE PŁACIMY";
+          // Adnotacja "NIE PŁACIMY" czerwoną czcionką trochę niżej
+          page.drawText('NIE PŁACIMY', {
+            x: width - 150,
+            y: height - 50,
+            size: 14,
+            font,
+            color: rgb(1, 0, 0),
+            rotate: degrees(0),
+          });
+        });
 
-    // Dla każdej strony
-    const strony = pdfDoc.getPages();
-    for (const strona of strony) {
-      const { width, height } = strona.getSize();
-      const marginesX = 50;
-      const marginesY = 50;
+        const pdfBytes = await pdfDoc.save();
 
-      // Data czarną czcionką, rozmiar 10, wypoziomowana do prawej
-      strona.drawText(dataTekst, {
-        x: width - marginesX - helveticaFont.widthOfTextAtSize(dataTekst, 10),
-        y: height - marginesY,
-        size: 10,
-        font: helveticaFont,
-        color: rgb(0, 0, 0),
-      });
+        // Pobierz plik
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `z_annotacja_${dateStr.replace(/\./g, '-')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
 
-      // Adnotacja czerwona, pogrubiona, rozmiar 12, 15 punktów niżej
-      strona.drawText(adnotacjaTekst, {
-        x: width - marginesX - helveticaBoldFont.widthOfTextAtSize(adnotacjaTekst, 12),
-        y: height - marginesY - 15,
-        size: 12,
-        font: helveticaBoldFont,
-        color: rgb(1, 0, 0),
-      });
-    }
-
-    // Generuj nowy PDF
-    const pdfBytes = await pdfDoc.save();
-
-    // Utwórz link do pobrania
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'adnotowany_pdf.pdf';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  });
-</script>
-
+      } catch (e) {
+        alert('Coś poszło nie tak: ' + e.message);
+      }
+    };
+  </script>
 </body>
 </html>
