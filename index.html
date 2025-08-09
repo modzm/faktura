@@ -2,105 +2,83 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF z adnotacją - polskie znaki</title>
+  <title>PDF polskie znaki - adnotacje</title>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 500px;
-      margin: auto;
-    }
-    input, button {
-      font-size: 16px;
-      margin-top: 10px;
-      display: block;
-      width: 100%;
-      padding: 8px;
-    }
-    button {
-      cursor: pointer;
-    }
+    body { font-family: Arial, sans-serif; max-width: 480px; margin: 20px auto; }
+    input, button { display: block; margin-top: 10px; width: 100%; font-size: 16px; padding: 8px; }
   </style>
 </head>
 <body>
-  <h2>Dodaj adnotację do PDF</h2>
-  <input type="file" id="fileInput" accept="application/pdf" />
-  <button id="processBtn">Dodaj adnotację i pobierz PDF</button>
 
-  <script>
-    const { PDFDocument, rgb, degrees } = PDFLib;
+<h2>Dodaj adnotację do PDF (polskie znaki)</h2>
+<input type="file" id="fileInput" accept="application/pdf" />
+<button id="processBtn">Przetwórz i pobierz PDF</button>
 
-    // Font Ubuntu-R.ttf z pdf-lib CDN (pełne wsparcie polskich znaków)
-    const fontUrl = 'https://pdf-lib.js.org/assets/ubuntu/Ubuntu-R.ttf';
+<script>
+  const { PDFDocument, rgb } = PDFLib;
+  const fontUrl = 'https://pdf-lib.js.org/assets/ubuntu/Ubuntu-R.ttf';
 
-    async function loadFont(pdfDoc) {
-      const fontBytes = await fetch(fontUrl).then(res => res.arrayBuffer());
-      return pdfDoc.embedFont(fontBytes);
+  async function loadFont(pdfDoc) {
+    const fontBytes = await fetch(fontUrl).then(res => res.arrayBuffer());
+    return pdfDoc.embedFont(fontBytes);
+  }
+
+  document.getElementById('processBtn').addEventListener('click', async () => {
+    const input = document.getElementById('fileInput');
+    if (!input.files.length) {
+      alert('Proszę wybrać plik PDF.');
+      return;
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      const fileInput = document.getElementById('fileInput');
-      const processBtn = document.getElementById('processBtn');
+    try {
+      const file = input.files[0];
+      const arrayBuffer = await file.arrayBuffer();
 
-      processBtn.addEventListener('click', async () => {
-        if (fileInput.files.length === 0) {
-          alert('Wczytaj plik PDF!');
-          return;
-        }
+      const pdfDoc = await PDFDocument.load(arrayBuffer);
+      const font = await loadFont(pdfDoc);
+      const pages = pdfDoc.getPages();
+      const dateStr = new Date().toLocaleDateString('pl-PL');
 
-        try {
-          const file = fileInput.files[0];
-          const arrayBuffer = await file.arrayBuffer();
+      pages.forEach(page => {
+        const { width, height } = page.getSize();
 
-          const pdfDoc = await PDFDocument.load(arrayBuffer);
-          const font = await loadFont(pdfDoc);
-          const pages = pdfDoc.getPages();
-          const dateStr = new Date().toLocaleDateString('pl-PL');
+        page.drawText(`Data przyjęcia: ${dateStr}`, {
+          x: width - 220,
+          y: height - 30,
+          size: 12,
+          font,
+          color: rgb(0, 0, 0),
+        });
 
-          pages.forEach(page => {
-            const { width, height } = page.getSize();
-
-            // Data przyjęcia - czarny tekst
-            page.drawText(`Data przyjęcia: ${dateStr}`, {
-              x: width - 200,
-              y: height - 30,
-              size: 12,
-              font,
-              color: rgb(0, 0, 0),
-            });
-
-            // NIE PŁACIMY - czerwony tekst
-            page.drawText('NIE PŁACIMY', {
-              x: width - 150,
-              y: height - 50,
-              size: 14,
-              font,
-              color: rgb(1, 0, 0),
-              rotate: degrees(0),
-            });
-          });
-
-          const pdfBytes = await pdfDoc.save();
-
-          const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `z_annotacja_${dateStr.replace(/\./g, '-')}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          }, 100);
-
-        } catch (e) {
-          alert('Coś poszło nie tak: ' + e.message);
-          console.error(e);
-        }
+        page.drawText('NIE PŁACIMY', {
+          x: width - 150,
+          y: height - 50,
+          size: 16,
+          font,
+          color: rgb(1, 0, 0),
+        });
       });
-    });
-  </script>
+
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `z_annotacja_${dateStr.replace(/\./g, '-')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 150);
+
+    } catch (e) {
+      alert('Coś poszło nie tak: ' + e.message);
+      console.error(e);
+    }
+  });
+</script>
+
 </body>
 </html>
