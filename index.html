@@ -1,214 +1,238 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PDF Adnotacje - wiele plików + ZIP</title>
-  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.0/dist/jszip.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 30px auto;
-      padding: 10px;
-      background: #f9f9f9;
-      color: #222;
-    }
-    h1 {
-      text-align: center;
-      color: #2c3e50;
-    }
-    label {
-      display: block;
-      margin-top: 15px;
-      font-weight: bold;
-    }
-    input[type="file"] {
-      margin-top: 5px;
-    }
-    input[type="text"], select, input[type="number"] {
-      width: 100%;
-      padding: 7px;
-      margin-top: 5px;
-      box-sizing: border-box;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-    }
-    button {
-      margin-top: 20px;
-      width: 100%;
-      padding: 12px;
-      font-size: 18px;
-      background-color: #27ae60;
-      border: none;
-      border-radius: 4px;
-      color: white;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    button:hover {
-      background-color: #219150;
-    }
-    .note {
-      font-size: 0.9em;
-      color: #555;
-      margin-top: 5px;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PDF Adnotacje - wiele plików + ZIP</title>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.0/dist/jszip.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 30px auto;
+            padding: 10px;
+            background: #f9f9f9;
+            color: #222;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        input[type="file"] {
+            margin-top: 5px;
+        }
+        input[type="text"], select, input[type="number"] {
+            width: 100%;
+            padding: 7px;
+            margin-top: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        button {
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px;
+            font-size: 18px;
+            background-color: #27ae60;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover:not(:disabled) {
+            background-color: #219150;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .note {
+            font-size: 0.9em;
+            color: #555;
+            margin-top: 5px;
+        }
+        #statusMessage {
+            margin-top: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
 
-  <h1>Dodaj adnotacje do wielu PDF</h1>
+    <h1>Dodaj adnotacje do wielu PDF</h1>
 
-  <label for="pdfFile">Wybierz pliki PDF (możesz wybrać wiele):</label>
-  <input type="file" id="pdfFile" accept="application/pdf" multiple />
+    <label for="pdfFile">Wybierz pliki PDF (możesz wybrać wiele):</label>
+    <input type="file" id="pdfFile" accept="application/pdf" multiple />
 
-  <label for="annotationText">Tekst adnotacji (czerwony):</label>
-  <input type="text" id="annotationText" placeholder="np. NIE PLACIMY" value="NIE PLACIMY" />
+    <label for="annotationText">Tekst adnotacji (czerwony):</label>
+    <input type="text" id="annotationText" placeholder="np. NIE PLACIMY" value="NIE PLACIMY" />
 
-  <label for="pages">Strony do adnotacji (np. 1,3,5-7; puste = wszystkie):</label>
-  <input type="text" id="pages" placeholder="np. 1,3,5-7" />
+    <label for="pages">Strony do adnotacji (np. 1,3,5-7; puste = wszystkie):</label>
+    <input type="text" id="pages" placeholder="np. 1,3,5-7" />
 
-  <label for="fontSize">Rozmiar czcionki (dla adnotacji):</label>
-  <input type="number" id="fontSize" min="8" max="40" value="18" />
+    <label for="fontSize">Rozmiar czcionki (dla adnotacji):</label>
+    <input type="number" id="fontSize" min="8" max="40" value="18" />
 
-  <label for="position">Pozycja adnotacji na stronie:</label>
-  <select id="position">
-    <option value="top-right" selected>Góra prawa</option>
-    <option value="top-left">Góra lewa</option>
-    <option value="bottom-right">Dół prawa</option>
-    <option value="bottom-left">Dół lewa</option>
-  </select>
+    <label for="position">Pozycja adnotacji na stronie:</label>
+    <select id="position">
+        <option value="top-right" selected>Góra prawa</option>
+        <option value="top-left">Góra lewa</option>
+        <option value="bottom-right">Dół prawa</option>
+        <option value="bottom-left">Dół lewa</option>
+    </select>
 
-  <button id="processBtn">Dodaj adnotacje i pobierz ZIP</button>
+    <button id="processBtn">Dodaj adnotacje i pobierz pliki</button>
 
-  <script>
-    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+    <div id="statusMessage"></div>
 
-    function removePolishChars(str) {
-      const map = {ą:'a',ć:'c',ę:'e',ł:'l',ń:'n',ó:'o',ś:'s',ź:'z',ż:'z',Ą:'A',Ć:'C',Ę:'E',Ł:'L',Ń:'N',Ó:'O',Ś:'S',Ź:'Z',Ż:'Z'};
-      return str.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, c => map[c] || c);
-    }
+    <script>
+        const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
-    function parsePages(input, maxPage) {
-      if (!input.trim()) return [...Array(maxPage).keys()];
-      const parts = input.split(',');
-      const pages = new Set();
-      parts.forEach(part => {
-        if (part.includes('-')) {
-          const [start, end] = part.split('-').map(x => parseInt(x.trim(),10));
-          for(let i = start; i <= end; i++) {
-            if(i > 0 && i <= maxPage) pages.add(i-1);
-          }
-        } else {
-          const pageNum = parseInt(part.trim(), 10);
-          if(pageNum > 0 && pageNum <= maxPage) pages.add(pageNum-1);
+        function removePolishChars(str) {
+            const map = {ą:'a',ć:'c',ę:'e',ł:'l',ń:'n',ó:'o',ś:'s',ź:'z',ż:'z',Ą:'A',Ć:'C',Ę:'E',Ł:'L',Ń:'N',Ó:'O',Ś:'S',Ź:'Z',Ż:'Z'};
+            return str.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, c => map[c] || c);
         }
-      });
-      return Array.from(pages).sort((a,b)=>a-b);
-    }
 
-    function formatDate(date) {
-      const dd = String(date.getDate()).padStart(2,'0');
-      const mm = String(date.getMonth()+1).padStart(2,'0');
-      const yyyy = date.getFullYear();
-      return `${dd}/${mm}/${yyyy}`;
-    }
+        function parsePages(input, maxPage) {
+            if (!input.trim()) return [...Array(maxPage).keys()];
+            const parts = input.split(',');
+            const pages = new Set();
+            parts.forEach(part => {
+                if (part.includes('-')) {
+                    const [start, end] = part.split('-').map(x => parseInt(x.trim(), 10));
+                    for(let i = start; i <= end; i++) {
+                        if(i > 0 && i <= maxPage) pages.add(i - 1);
+                    }
+                } else {
+                    const pageNum = parseInt(part.trim(), 10);
+                    if(pageNum > 0 && pageNum <= maxPage) pages.add(pageNum - 1);
+                }
+            });
+            return Array.from(pages).sort((a, b) => a - b);
+        }
 
-    document.getElementById('processBtn').onclick = async () => {
-      const fileInput = document.getElementById('pdfFile');
-      const textInput = document.getElementById('annotationText');
-      const fontSizeInput = document.getElementById('fontSize');
-      const positionSelect = document.getElementById('position');
-      const pagesInput = document.getElementById('pages');
+        function formatDate(date) {
+            const dd = String(date.getDate()).padStart(2, '0');
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const yyyy = date.getFullYear();
+            return `${dd}/${mm}/${yyyy}`;
+        }
+        
+        function downloadFile(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
 
-      if(fileInput.files.length === 0) {
-        alert('Wybierz przynajmniej jeden plik PDF!');
-        return;
-      }
-      let text = textInput.value.trim();
-      if(text.length === 0) {
-        alert('Wpisz tekst adnotacji!');
-        return;
-      }
-      text = removePolishChars(text);
+        document.getElementById('processBtn').onclick = async () => {
+            const fileInput = document.getElementById('pdfFile');
+            const textInput = document.getElementById('annotationText');
+            const fontSizeInput = document.getElementById('fontSize');
+            const positionSelect = document.getElementById('position');
+            const pagesInput = document.getElementById('pages');
+            const processBtn = document.getElementById('processBtn');
+            const statusMessage = document.getElementById('statusMessage');
 
-      try {
-        const zip = new JSZip();
-
-        for(const file of fileInput.files) {
-          const arrayBuffer = await file.arrayBuffer();
-          const pdfDoc = await PDFDocument.load(arrayBuffer);
-
-          const pagesToAnnotate = parsePages(pagesInput.value, pdfDoc.getPageCount());
-          const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-          const dateText = 'Data przyjecia: ' + formatDate(new Date());
-          const dateFontSize = 12;
-
-          pagesToAnnotate.forEach(pageIndex => {
-            const page = pdfDoc.getPages()[pageIndex];
-            const { width, height } = page.getSize();
-            const fontSize = parseInt(fontSizeInput.value, 10);
-
-            let xDate, yDate, xAnn, yAnn;
-
-            switch(positionSelect.value) {
-              case 'top-left':
-                xDate = 10;
-                yDate = height - dateFontSize - 10;
-                xAnn = 10;
-                yAnn = yDate - fontSize - 5;
-                break;
-              case 'top-right':
-                xDate = width - font.widthOfTextAtSize(dateText, dateFontSize) - 10;
-                yDate = height - dateFontSize - 10;
-                xAnn = width - font.widthOfTextAtSize(text, fontSize) - 10;
-                yAnn = yDate - fontSize - 5;
-                break;
-              case 'bottom-left':
-                xAnn = 10;
-                yAnn = 10;
-                xDate = 10;
-                yDate = yAnn + fontSize + 5;
-                break;
-              case 'bottom-right':
-                xAnn = width - font.widthOfTextAtSize(text, fontSize) - 10;
-                yAnn = 10;
-                xDate = width - font.widthOfTextAtSize(dateText, dateFontSize) - 10;
-                yDate = yAnn + fontSize + 5;
-                break;
+            if (fileInput.files.length === 0) {
+                alert('Wybierz przynajmniej jeden plik PDF!');
+                return;
             }
+            
+            let text = textInput.value.trim();
+            if (text.length === 0) {
+                alert('Wpisz tekst adnotacji!');
+                return;
+            }
+            text = removePolishChars(text);
 
-            page.drawText(dateText, { x: xDate, y: yDate, size: dateFontSize, font, color: rgb(0,0,0), opacity: 1 });
-            page.drawText(text, { x: xAnn, y: yAnn, size: fontSize, font, color: rgb(1,0,0), opacity: 0.8 });
-          });
+            processBtn.disabled = true;
+            statusMessage.textContent = 'Przetwarzanie plików... Proszę czekać.';
 
-          const pdfBytes = await pdfDoc.save();
-          const originalName = file.name.replace(/\.pdf$/i, '');
-          zip.file(originalName + '_adnotacja.pdf', pdfBytes);
-        }
+            try {
+                const files = fileInput.files;
+                const processedFiles = [];
 
-        const content = await zip.generateAsync({type:"blob"});
-        const zipName = 'pdf_adnotacje_' + new Date().toISOString().slice(0,10) + '.zip';
-        const url = URL.createObjectURL(content);
+                await Promise.all(Array.from(files).map(async (file) => {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdfDoc = await PDFDocument.load(arrayBuffer);
+                    
+                    const pagesToAnnotate = parsePages(pagesInput.value, pdfDoc.getPageCount());
+                    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+                    const dateText = 'Data przyjecia: ' + formatDate(new Date());
+                    const dateFontSize = 12;
 
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = zipName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+                    pagesToAnnotate.forEach(pageIndex => {
+                        const page = pdfDoc.getPages()[pageIndex];
+                        const { width, height } = page.getSize();
+                        const fontSize = parseInt(fontSizeInput.value, 10);
+                        let xDate, yDate, xAnn, yAnn;
+                        
+                        switch(positionSelect.value) {
+                            case 'top-left':
+                                xDate = 10; yDate = height - dateFontSize - 10;
+                                xAnn = 10; yAnn = yDate - fontSize - 5;
+                                break;
+                            case 'top-right':
+                                xDate = width - font.widthOfTextAtSize(dateText, dateFontSize) - 10; yDate = height - dateFontSize - 10;
+                                xAnn = width - font.widthOfTextAtSize(text, fontSize) - 10; yAnn = yDate - fontSize - 5;
+                                break;
+                            case 'bottom-left':
+                                xAnn = 10; yAnn = 10;
+                                xDate = 10; yDate = yAnn + fontSize + 5;
+                                break;
+                            case 'bottom-right':
+                                xAnn = width - font.widthOfTextAtSize(text, fontSize) - 10; yAnn = 10;
+                                xDate = width - font.widthOfTextAtSize(dateText, dateFontSize) - 10; yDate = yAnn + fontSize + 5;
+                                break;
+                        }
+                        page.drawText(dateText, { x: xDate, y: yDate, size: dateFontSize, font, color: rgb(0, 0, 0), opacity: 1 });
+                        page.drawText(text, { x: xAnn, y: yAnn, size: fontSize, font, color: rgb(1, 0, 0), opacity: 0.8 });
+                    });
+                    
+                    const pdfBytes = await pdfDoc.save();
+                    const originalName = file.name.replace(/\.pdf$/i, '');
+                    processedFiles.push({ filename: originalName + '_adnotacja.pdf', bytes: pdfBytes });
+                }));
+                
+                if (processedFiles.length === 1) {
+                    const file = processedFiles[0];
+                    const blob = new Blob([file.bytes], { type: 'application/pdf' });
+                    downloadFile(blob, file.filename);
+                    statusMessage.textContent = 'Plik został przetworzony i pobrany.';
+                } else {
+                    const zip = new JSZip();
+                    processedFiles.forEach(file => {
+                        zip.file(file.filename, file.bytes);
+                    });
+                    const content = await zip.generateAsync({ type: "blob" });
+                    const zipName = 'pdf_adnotacje_' + new Date().toISOString().slice(0, 10) + '.zip';
+                    downloadFile(content, zipName);
+                    statusMessage.textContent = 'Wszystkie pliki zostały przetworzone i pobrane w archiwum ZIP.';
+                }
 
-        alert('Wszystkie pliki zostały przetworzone i pobrane w archiwum ZIP.');
-
-      } catch(e) {
-        alert('Coś poszło nie tak: ' + e.message);
-      }
-    };
-  </script>
+            } catch (e) {
+                console.error(e);
+                statusMessage.textContent = 'Wystąpił błąd podczas przetwarzania: ' + e.message;
+            } finally {
+                processBtn.disabled = false;
+            }
+        };
+    </script>
 
 </body>
 </html>
